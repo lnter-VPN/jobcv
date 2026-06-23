@@ -1,0 +1,19 @@
+[project]
+name = "jobcv"
+version = "0.1.0"
+description = "AI resume optimizer with ATS keyword matching — DeepSeek by default, local Ollama or any OpenAI-compatible backend."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []  # core is zero-dependency (stdlib only)
+
+[project.optional-dependencies]
+zh = ["jieba"]   # better Chinese keyword segmentation
+dev = ["pytest", "jieba"]
+
+[project.scripts]
+jobcv = "jobcv.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

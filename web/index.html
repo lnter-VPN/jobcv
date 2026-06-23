@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>jobcv · AI 简历优化 + ATS 匹配</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">📄</span>
+      <span class="name">jobcv</span>
+      <span class="tag">AI 简历优化 · ATS 关键词匹配</span>
+    </div>
+    <a class="gh" href="#" id="healthDot" title="后端状态">●</a>
+  </header>
+
+  <main class="layout">
+    <!-- 左：输入 -->
+    <section class="pane input-pane">
+      <label class="field">
+        <span class="label">目标岗位 JD</span>
+        <textarea id="jd" placeholder="粘贴招聘岗位的职位描述（JD）…"></textarea>
+      </label>
+      <label class="field">
+        <span class="label">你的简历</span>
+        <textarea id="resume" placeholder="粘贴你当前的简历正文…"></textarea>
+      </label>
+
+      <details class="backend-cfg">
+        <summary>模型后端设置</summary>
+        <div class="cfg-grid">
+          <label>后端
+            <select id="backend">
+              <option value="deepseek">DeepSeek（默认，便宜）</option>
+              <option value="ollama">Ollama（本地，数据不出本机）</option>
+              <option value="custom">自定义 OpenAI 兼容地址</option>
+            </select>
+          </label>
+          <label>模型 <input id="model" placeholder="留空用后端默认" /></label>
+          <label class="custom-only">Base URL <input id="baseUrl" placeholder="http://localhost:11434/v1" /></label>
+          <label class="key-row">API Key <input id="apiKey" type="password" placeholder="DeepSeek key（仅本地保存）" /></label>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button id="scoreBtn" class="btn ghost">算 ATS 分（免费）</button>
+        <button id="polishBtn" class="btn primary">AI 优化简历 →</button>
+      </div>
+      <p class="hint" id="hint"></p>
+    </section>
+
+    <!-- 右：结果 -->
+    <section class="pane result-pane">
+      <div class="score-card">
+        <div class="gauge" id="gauge">
+          <span class="gauge-val" id="scoreVal">—</span>
+          <span class="gauge-max">/100</span>
+        </div>
+        <div class="score-meta">
+          <div class="score-title">ATS 匹配分</div>
+          <div class="score-sub" id="scoreSub">输入 JD 和简历后点击下方按钮</div>
+          <div class="delta" id="delta"></div>
+        </div>
+      </div>
+
+      <div class="kw-block">
+        <div class="kw-head"><span class="dot ok"></span>命中关键词 <span id="matchCount" class="count"></span></div>
+        <div class="chips" id="matched"></div>
+      </div>
+      <div class="kw-block">
+        <div class="kw-head"><span class="dot miss"></span>缺失关键词 <span id="missCount" class="count"></span></div>
+        <div class="chips" id="missing"></div>
+      </div>
+
+      <div class="polished" id="polishedBlock" hidden>
+        <div class="kw-head">✨ 优化后简历 <button id="copyBtn" class="copy">复制</button></div>
+        <pre id="polishedText"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
