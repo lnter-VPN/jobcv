@@ -5,6 +5,9 @@
 
 **后端无关**：默认 DeepSeek（便宜），也支持本地 Ollama 或任意 OpenAI 兼容接口——数据可不出本机。
 
+> 🌐 **在线体验（临时 demo）**：<https://automotive-parade-eric-test.trycloudflare.com>
+> 免费的「ATS 算分」无需任何 key 即可用；「AI 优化」需在页面里填你自己的 DeepSeek key（仅存在你浏览器本地，不上传服务器）。
+
 ---
 
 ## 安装
