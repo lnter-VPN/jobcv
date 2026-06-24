@@ -9,8 +9,9 @@ dependencies = []  # core is zero-dependency (stdlib only)
 
 [project.optional-dependencies]
 zh = ["jieba"]                              # better Chinese keyword segmentation
-api = ["fastapi>=0.110", "uvicorn>=0.29"]   # HTTP API + 网页版 (jobcv serve)
-dev = ["pytest", "jieba", "fastapi>=0.110", "uvicorn>=0.29", "build"]
+files = ["pypdf>=4.0", "python-docx>=1.1"]  # parse uploaded PDF / DOCX resumes
+api = ["fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9"]  # HTTP API + 网页版
+dev = ["pytest", "jieba", "fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9", "pypdf>=4.0", "python-docx>=1.1", "build"]
 
 [project.urls]
 Homepage = "https://github.com/lnter-VPN/jobcv"

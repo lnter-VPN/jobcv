@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>jobcv · AI 简历优化 + ATS 匹配</title>
-  <meta name="description" content="一键测算简历与岗位 JD 的 ATS 匹配度，并用 AI 优化简历，提升过筛率。" />
+  <meta name="description" content="ATS 算分、多岗位匹配、简历体检、AI 优化、求职信与面试题预测，一站式求职利器。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
-<body>
+<body class="mode-score">
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="brand" href="/">
@@ -29,10 +29,20 @@
 
   <main>
     <section class="hero wrap">
-      <span class="eyebrow">开源 · 免费算分 · 自带 Key 用 AI</span>
-      <h1>让简历精准命中岗位<br /><span class="grad">关键词</span></h1>
-      <p class="lead">粘贴 JD 和你的简历，秒出 ATS 匹配分与缺失关键词。需要时，交给 AI 把简历改得更对味，提升机器初筛通过率。</p>
+      <span class="eyebrow">六大功能 · 算分 / 匹配 / 体检免费 · AI 功能自带 Key</span>
+      <h1>把简历投到<br /><span class="grad">最对的岗位</span></h1>
+      <p class="lead">ATS 算分、多岗位匹配、简历体检、AI 优化、求职信与面试题预测——求职全流程，一个工具搞定。</p>
     </section>
+
+    <!-- 功能标签页 -->
+    <nav class="tabs wrap" id="tabs">
+      <button class="tab" data-mode="score">ATS 算分<small>免费</small></button>
+      <button class="tab" data-mode="match">多岗位匹配<small>免费</small></button>
+      <button class="tab" data-mode="report">简历体检<small>免费</small></button>
+      <button class="tab" data-mode="polish">AI 优化<small>AI</small></button>
+      <button class="tab" data-mode="cover">求职信<small>AI</small></button>
+      <button class="tab" data-mode="interview">面试题<small>AI</small></button>
+    </nav>
 
     <section class="board wrap">
       <!-- 左：输入 -->
@@ -40,24 +50,41 @@
         <div class="card-head">
           <span class="num">1</span>
           <div>
-            <h2>输入</h2>
-            <p>粘贴目标岗位 JD 与你的简历正文</p>
+            <h2 id="inTitle">输入</h2>
+            <p id="inDesc">粘贴目标岗位 JD 与你的简历正文</p>
           </div>
         </div>
 
+        <!-- 简历（所有模式都要） -->
         <label class="field">
+          <span class="field-label">
+            你的简历
+            <span class="upload">
+              <input type="file" id="resumeFile" accept=".txt,.md,.pdf,.docx" hidden />
+              <button type="button" id="uploadBtn" class="upload-btn">⬆ 上传 PDF / DOCX</button>
+            </span>
+          </span>
+          <textarea id="resume" placeholder="粘贴你当前的简历正文，或点右上角上传文件…"></textarea>
+        </label>
+
+        <!-- 单个 JD（除「多岗位/体检」外都要） -->
+        <label class="field needs-jd">
           <span class="field-label">目标岗位 JD</span>
           <textarea id="jd" placeholder="粘贴招聘岗位的职位描述（JD）…"></textarea>
         </label>
-        <label class="field">
-          <span class="field-label">你的简历</span>
-          <textarea id="resume" placeholder="粘贴你当前的简历正文…"></textarea>
-        </label>
 
-        <details class="backend-cfg">
+        <!-- 多个 JD（仅「多岗位匹配」） -->
+        <div class="field needs-multijd">
+          <span class="field-label">多个目标岗位 JD <small class="lbl-hint">一份简历同时比对多个岗位，排出最匹配的</small></span>
+          <div id="jdList" class="jd-list"></div>
+          <button type="button" id="addJd" class="add-jd">＋ 再加一个岗位</button>
+        </div>
+
+        <!-- AI 后端设置（仅 AI 模式） -->
+        <details class="backend-cfg needs-ai">
           <summary>
             <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94a7.49 7.49 0 000-1.88l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.61-.22l-2.39.96a7.3 7.3 0 00-1.62-.94l-.36-2.54a.5.5 0 00-.5-.42h-3.84a.5.5 0 00-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 00-.61.22L2.69 8.84a.5.5 0 00.12.64l2.03 1.58a7.49 7.49 0 000 1.88l-2.03 1.58a.5.5 0 00-.12.64l1.92 3.32c.14.24.42.33.67.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.25.11.53.02.67-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1112 8.5a3.5 3.5 0 010 7z"/></svg>
-            模型后端设置（仅 AI 优化需要）
+            模型后端设置
           </summary>
           <div class="cfg-grid">
             <label class="cfg-field">后端
@@ -68,15 +95,14 @@
               </select>
             </label>
             <label class="cfg-field">模型 <input id="model" placeholder="留空用后端默认" /></label>
-            <label class="cfg-field custom-only">Base URL <input id="baseUrl" placeholder="http://localhost:11434/v1" /></label>
+            <label class="cfg-field custom-only">Base URL <input id="baseUrl" placeholder="http://你的本地模型:8000/v1" /></label>
             <label class="cfg-field key-row">API Key <input id="apiKey" type="password" placeholder="仅保存在你浏览器本地" /></label>
           </div>
           <p class="cfg-note"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg> API Key 只存在你本地浏览器，不会上传到服务器。</p>
         </details>
 
         <div class="actions">
-          <button id="scoreBtn" class="btn btn-ghost">算 ATS 分 · 免费</button>
-          <button id="polishBtn" class="btn btn-primary">AI 优化简历<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button id="actionBtn" class="btn btn-primary">算 ATS 匹配分<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
         <p class="hint" id="hint"></p>
       </div>
@@ -86,41 +112,57 @@
         <div class="card-head">
           <span class="num">2</span>
           <div>
-            <h2>结果</h2>
-            <p>ATS 匹配分与关键词命中情况</p>
+            <h2 id="outTitle">结果</h2>
+            <p id="outDesc">ATS 匹配分与关键词命中情况</p>
           </div>
         </div>
 
-        <div class="score-card">
-          <div class="ring" id="gauge">
-            <svg viewBox="0 0 120 120" aria-hidden="true">
-              <circle class="ring-track" cx="60" cy="60" r="52" />
-              <circle class="ring-bar" id="ringBar" cx="60" cy="60" r="52" />
-            </svg>
-            <div class="ring-center">
-              <span class="ring-val" id="scoreVal">—</span>
-              <span class="ring-max">/ 100</span>
+        <!-- 结果：算分 / 优化 共用的评分环 -->
+        <div class="res-score">
+          <div class="score-card">
+            <div class="ring" id="gauge">
+              <svg viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="ring-track" cx="60" cy="60" r="52" />
+                <circle class="ring-bar" id="ringBar" cx="60" cy="60" r="52" />
+              </svg>
+              <div class="ring-center">
+                <span class="ring-val" id="scoreVal">—</span>
+                <span class="ring-max">/ 100</span>
+              </div>
+            </div>
+            <div class="score-meta">
+              <div class="score-title">ATS 匹配分</div>
+              <div class="score-sub" id="scoreSub">填入内容后点击下方按钮</div>
+              <div class="delta" id="delta"></div>
             </div>
           </div>
-          <div class="score-meta">
-            <div class="score-title">ATS 匹配分</div>
-            <div class="score-sub" id="scoreSub">填入左侧内容后点击「算 ATS 分」</div>
-            <div class="delta" id="delta"></div>
+
+          <div class="kw-block">
+            <div class="kw-head"><span class="dot ok"></span>命中关键词<span id="matchCount" class="count"></span></div>
+            <div class="chips" id="matched"><span class="chips-empty">等待算分…</span></div>
+          </div>
+          <div class="kw-block">
+            <div class="kw-head"><span class="dot miss"></span>缺失关键词<span id="missCount" class="count"></span></div>
+            <div class="chips" id="missing"><span class="chips-empty">等待算分…</span></div>
           </div>
         </div>
 
-        <div class="kw-block">
-          <div class="kw-head"><span class="dot ok"></span>命中关键词<span id="matchCount" class="count"></span></div>
-          <div class="chips" id="matched"><span class="chips-empty">等待算分…</span></div>
-        </div>
-        <div class="kw-block">
-          <div class="kw-head"><span class="dot miss"></span>缺失关键词<span id="missCount" class="count"></span></div>
-          <div class="chips" id="missing"><span class="chips-empty">等待算分…</span></div>
+        <!-- 结果：多岗位排序 -->
+        <div class="res-rank">
+          <div id="rankList" class="rank-list"><p class="empty">填入简历和多个岗位，点「多岗位匹配排序」。</p></div>
         </div>
 
-        <div class="polished" id="polishedBlock" hidden>
-          <div class="kw-head">优化后简历<button id="copyBtn" class="copy">复制</button></div>
-          <pre id="polishedText"></pre>
+        <!-- 结果：简历体检 -->
+        <div class="res-report">
+          <div id="reportBox"><p class="empty">填入简历，点「简历体检」即可获得诊断分与改进建议。</p></div>
+        </div>
+
+        <!-- 结果：AI 文本输出（优化/求职信/面试题） -->
+        <div class="res-text">
+          <div class="text-out" id="textBlock">
+            <div class="kw-head" id="textHead"><span id="textTitle">AI 输出</span><button id="copyBtn" class="copy" hidden>复制</button></div>
+            <div id="textBody" class="text-body"><p class="empty">填入内容后点击下方按钮生成。</p></div>
+          </div>
         </div>
       </div>
     </section>
@@ -128,7 +170,7 @@
 
   <footer class="foot wrap">
     <span>jobcv · 开源于 <a href="https://github.com/lnter-VPN/jobcv" target="_blank" rel="noopener">GitHub</a></span>
-    <span>算分免费即用，AI 优化需自带 API Key（不花本站的钱）</span>
+    <span>算分 / 匹配 / 体检免费即用，AI 功能自带 API Key（不花本站的钱）</span>
   </footer>
 
   <script src="/app.js"></script>

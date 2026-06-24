@@ -59,7 +59,8 @@ def test_cjk_terms():
     r = ats.match(resume, jd)
     assert "distributed-systems" in r.matched  # 分布式系统 canonicalized
     assert "high-concurrency" in r.matched  # 高并发 canonicalized
-    assert "招聘" in r.missing  # JD-only noise correctly flagged missing
+    # "招聘" is recruiting filler — dropped as a stopword, never a keyword.
+    assert "招聘" not in r.matched and "招聘" not in r.missing
 
 
 def test_stopwords_excluded():

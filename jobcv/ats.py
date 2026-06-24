@@ -42,6 +42,7 @@ _CJK_RUN = re.compile(r"[一-鿿]{2,}")
 _CJK_STOP = {
     "的", "了", "和", "与", "及", "或", "在", "是", "有", "要求", "负责", "熟悉",
     "熟练", "掌握", "具备", "拥有", "以及", "等", "对", "并", "能", "需",
+    "招聘", "岗位", "职责", "任职", "优先", "加分", "我们", "公司", "团队",
 }
 
 # Synonym / skill groups. The first item in each group is the canonical form
@@ -177,6 +178,26 @@ class MatchResult:
     @property
     def total(self) -> int:
         return len(self.matched) + len(self.missing)
+
+
+@dataclass
+class RankedJD:
+    label: str
+    result: MatchResult
+
+
+def rank(resume_text: str, jds: dict[str, str], top: int = 40) -> list[RankedJD]:
+    """Match one resume against many JDs and return them best-first.
+
+    ``jds`` maps a label (job title / company) to its JD text. Useful for
+    deciding which openings a single resume fits best.
+    """
+    ranked = [
+        RankedJD(label=label, result=match(resume_text, jd, top=top))
+        for label, jd in jds.items()
+    ]
+    ranked.sort(key=lambda r: r.result.score, reverse=True)
+    return ranked
 
 
 def match(resume_text: str, jd_text: str, top: int = 40) -> MatchResult:

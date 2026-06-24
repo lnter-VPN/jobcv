@@ -6,7 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from . import __version__, ats, llm
+from . import __version__, ats, extract, llm, report
 
 POLISH_SYSTEM = (
     "你是资深简历优化顾问。根据目标岗位 JD，重写用户简历，使其更贴合岗位、"
@@ -14,12 +14,27 @@ POLISH_SYSTEM = (
     "保持原有事实，只优化表达与结构。用与原简历相同的语言输出，只输出优化后的简历正文。"
 )
 
+COVER_SYSTEM = (
+    "你是求职信写作专家。基于用户简历和目标岗位 JD，写一封简洁有力的求职信（cover letter）："
+    "开头点明应聘岗位与匹配亮点，主体用简历中的真实经历与量化成果证明胜任，"
+    "结尾礼貌表达意向。严禁编造经历，只用简历里有的事实。控制在 250-400 字，"
+    "用与简历相同的语言，只输出信件正文。"
+)
+
+INTERVIEW_SYSTEM = (
+    "你是该岗位的资深面试官。根据 JD 和候选人简历，预测最可能被问到的面试题，"
+    "覆盖：技术/专业题、项目深挖题、行为题。每题给出【考察点】和【作答方向提示】，"
+    "但不要替候选人编造具体经历。按类别分组，用 Markdown 输出 8-12 题。"
+    "用与 JD 相同的语言。"
+)
+
 
 def _read(path: str) -> str:
-    p = Path(path)
-    if not p.exists():
-        sys.exit(f"file not found: {path}")
-    return p.read_text(encoding="utf-8", errors="replace")
+    """Read a resume/JD file, auto-extracting text from PDF/DOCX when needed."""
+    try:
+        return extract.from_path(path)
+    except extract.ExtractError as e:
+        sys.exit(str(e))
 
 
 def cmd_score(args: argparse.Namespace) -> int:
@@ -31,6 +46,62 @@ def cmd_score(args: argparse.Namespace) -> int:
     print("\n❌ 缺失:", "  ".join(r.missing) or "(无)")
     if r.missing:
         print("\n建议: 把上面缺失的关键词（属实的）自然写进简历，可显著提升过筛率。")
+    return 0
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    rep = report.analyze(_read(args.resume))
+    print(f"简历体检分: {rep.score}/100\n")
+    print(f"  字数        : {rep.word_count}")
+    print(f"  经历条目    : {rep.bullet_count}")
+    print(f"  量化条目    : {rep.quantified}/{rep.bullet_count} ({round(rep.quantified_ratio*100)}%)")
+    print(f"  强动词开头  : {rep.strong_verb_bullets}   弱开头: {rep.weak_opener_bullets}")
+    print(f"  含板块      : {'、'.join(rep.sections_present) or '(无)'}")
+    print(f"  联系方式    : 邮箱 {'✓' if rep.has_email else '✗'}  电话 {'✓' if rep.has_phone else '✗'}")
+    print("\n改进建议:")
+    for it in rep.issues:
+        print(f"  {'⚠️ ' if it.level == 'warn' else '💡 '}{it.msg}")
+    return 0
+
+
+def cmd_match(args: argparse.Namespace) -> int:
+    resume = _read(args.resume)
+    jds = {Path(p).stem: _read(p) for p in args.jds}
+    ranked = ats.rank(resume, jds, top=args.top)
+    print(f"一份简历 × {len(ranked)} 个岗位，按匹配度排序:\n")
+    for i, rj in enumerate(ranked, 1):
+        r = rj.result
+        print(f"{i}. {rj.label:<24} {r.score:>5}/100  ({len(r.matched)}/{r.total} 命中)")
+    print(f"\n最匹配: 「{ranked[0].label}」，缺失关键词:",
+          "  ".join(ranked[0].result.missing) or "(无)")
+    return 0
+
+
+def _ai_generate(args: argparse.Namespace, system: str) -> str:
+    resume = _read(args.resume)
+    jd = _read(args.jd)
+    cfg = llm.LLMConfig.from_backend(
+        args.backend, model=args.model, base_url=args.base_url, api_key=args.api_key
+    )
+    if cfg.api_key is None and args.backend == "deepseek":
+        sys.exit("缺少 API key：设置环境变量 DEEPSEEK_API_KEY 或用 --api-key 传入。")
+    print(f"[调用 {args.backend} / {cfg.model}] 生成中…", file=sys.stderr)
+    user = f"目标岗位 JD：\n{jd}\n\n候选人简历：\n{resume}"
+    return llm.chat(cfg, system, user)
+
+
+def cmd_cover(args: argparse.Namespace) -> int:
+    text = _ai_generate(args, COVER_SYSTEM)
+    if args.out:
+        Path(args.out).write_text(text, encoding="utf-8")
+        print(f"已写入 {args.out}", file=sys.stderr)
+    else:
+        print(text)
+    return 0
+
+
+def cmd_interview(args: argparse.Namespace) -> int:
+    print(_ai_generate(args, INTERVIEW_SYSTEM))
     return 0
 
 
@@ -82,6 +153,35 @@ def build_parser() -> argparse.ArgumentParser:
     sc.add_argument("--jd", required=True)
     sc.add_argument("--top", type=int, default=40)
     sc.set_defaults(func=cmd_score)
+
+    rp = sub.add_parser("report", help="简历体检：量化率/强动词/板块/联系方式（纯本地，免 key）")
+    rp.add_argument("--resume", required=True)
+    rp.set_defaults(func=cmd_report)
+
+    mt = sub.add_parser("match", help="一份简历对多个 JD，排出最匹配岗位（纯本地）")
+    mt.add_argument("--resume", required=True)
+    mt.add_argument("--jds", required=True, nargs="+", help="多个 JD 文件路径")
+    mt.add_argument("--top", type=int, default=40)
+    mt.set_defaults(func=cmd_match)
+
+    cv = sub.add_parser("cover", help="生成求职信（调用 LLM）")
+    cv.add_argument("--resume", required=True)
+    cv.add_argument("--jd", required=True)
+    cv.add_argument("--backend", default="deepseek")
+    cv.add_argument("--model", default=None)
+    cv.add_argument("--base-url", default=None)
+    cv.add_argument("--api-key", default=None)
+    cv.add_argument("--out", default=None)
+    cv.set_defaults(func=cmd_cover)
+
+    iv = sub.add_parser("interview", help="预测面试题 + 考点（调用 LLM）")
+    iv.add_argument("--resume", required=True)
+    iv.add_argument("--jd", required=True)
+    iv.add_argument("--backend", default="deepseek")
+    iv.add_argument("--model", default=None)
+    iv.add_argument("--base-url", default=None)
+    iv.add_argument("--api-key", default=None)
+    iv.set_defaults(func=cmd_interview)
 
     po = sub.add_parser("polish", help="按 JD 优化简历（调用 LLM）")
     po.add_argument("--resume", required=True)

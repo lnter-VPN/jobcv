@@ -8,13 +8,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import __version__, ats, llm
-from .cli import POLISH_SYSTEM
+from . import __version__, ats, extract, llm, report
+from .cli import COVER_SYSTEM, INTERVIEW_SYSTEM, POLISH_SYSTEM
 
 _HERE = Path(__file__).resolve().parent
 # Source layout keeps web/ at the repo root; the installed wheel ships it inside
@@ -58,6 +58,63 @@ class PolishOut(BaseModel):
     model: str
 
 
+class ReportIn(BaseModel):
+    resume: str = Field(..., min_length=1)
+
+
+class IssueOut(BaseModel):
+    level: str
+    msg: str
+
+
+class ReportOut(BaseModel):
+    score: float
+    word_count: int
+    bullet_count: int
+    quantified: int
+    quantified_ratio: float
+    strong_verb_bullets: int
+    weak_opener_bullets: int
+    sections_present: list[str]
+    sections_missing: list[str]
+    has_email: bool
+    has_phone: bool
+    issues: list[IssueOut]
+
+
+class RankIn(BaseModel):
+    resume: str = Field(..., min_length=1)
+    jds: dict[str, str] = Field(..., min_length=1)
+    top: int = Field(40, ge=5, le=100)
+
+
+class RankItemOut(BaseModel):
+    label: str
+    result: MatchOut
+
+
+class RankOut(BaseModel):
+    ranked: list[RankItemOut]
+
+
+class GenIn(ScoreIn):
+    backend: str = "deepseek"
+    model: str | None = None
+    base_url: str | None = None
+    api_key: str | None = None
+
+
+class GenOut(BaseModel):
+    text: str
+    backend: str
+    model: str
+
+
+class ExtractOut(BaseModel):
+    text: str
+    filename: str
+
+
 # ---- helpers ---------------------------------------------------------------
 
 def _match_out(r: ats.MatchResult) -> MatchOut:
@@ -84,6 +141,72 @@ def backends() -> dict:
 @app.post("/api/score", response_model=MatchOut)
 def score(body: ScoreIn) -> MatchOut:
     return _match_out(ats.match(body.resume, body.jd, top=body.top))
+
+
+@app.post("/api/report", response_model=ReportOut)
+def report_endpoint(body: ReportIn) -> ReportOut:
+    rep = report.analyze(body.resume)
+    return ReportOut(
+        score=rep.score,
+        word_count=rep.word_count,
+        bullet_count=rep.bullet_count,
+        quantified=rep.quantified,
+        quantified_ratio=rep.quantified_ratio,
+        strong_verb_bullets=rep.strong_verb_bullets,
+        weak_opener_bullets=rep.weak_opener_bullets,
+        sections_present=rep.sections_present,
+        sections_missing=rep.sections_missing,
+        has_email=rep.has_email,
+        has_phone=rep.has_phone,
+        issues=[IssueOut(level=i.level, msg=i.msg) for i in rep.issues],
+    )
+
+
+@app.post("/api/match", response_model=RankOut)
+def match_many(body: RankIn) -> RankOut:
+    ranked = ats.rank(body.resume, body.jds, top=body.top)
+    return RankOut(ranked=[
+        RankItemOut(label=r.label, result=_match_out(r.result)) for r in ranked
+    ])
+
+
+@app.post("/api/extract", response_model=ExtractOut)
+async def extract_endpoint(file: UploadFile = File(...)) -> ExtractOut:
+    data = await file.read()
+    try:
+        text = extract.from_bytes(data, file.filename or "upload.txt")
+    except extract.ExtractError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return ExtractOut(text=text, filename=file.filename or "")
+
+
+def _gen(body: "GenIn", system: str) -> GenOut:
+    try:
+        cfg = llm.LLMConfig.from_backend(
+            body.backend, model=body.model,
+            base_url=body.base_url, api_key=body.api_key,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if cfg.api_key is None and body.backend == "deepseek":
+        raise HTTPException(status_code=400,
+            detail="缺少 API key：在请求中传 api_key 或设置环境变量 DEEPSEEK_API_KEY。")
+    user = f"目标岗位 JD：\n{body.jd}\n\n候选人简历：\n{body.resume}"
+    try:
+        text = llm.chat(cfg, system, user)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return GenOut(text=text, backend=body.backend, model=cfg.model)
+
+
+@app.post("/api/cover", response_model=GenOut)
+def cover(body: GenIn) -> GenOut:
+    return _gen(body, COVER_SYSTEM)
+
+
+@app.post("/api/interview", response_model=GenOut)
+def interview(body: GenIn) -> GenOut:
+    return _gen(body, INTERVIEW_SYSTEM)
 
 
 @app.post("/api/polish", response_model=PolishOut)
