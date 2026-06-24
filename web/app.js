@@ -35,7 +35,11 @@ function setHint(msg, isErr = false) {
 
 function renderChips(box, words, cls) {
   box.innerHTML = "";
-  (words || []).forEach((w) => {
+  if (!words || !words.length) {
+    box.innerHTML = '<span class="chips-empty">暂无</span>';
+    return;
+  }
+  words.forEach((w) => {
     const c = document.createElement("span");
     c.className = "chip " + cls;
     c.textContent = w;
@@ -43,9 +47,33 @@ function renderChips(box, words, cls) {
   });
 }
 
+// score band → ring color
+function ringColor(score) {
+  if (score >= 75) return "var(--ok)";
+  if (score >= 50) return "var(--warn)";
+  return "var(--miss)";
+}
+
+// animated count-up for the gauge number
+let countTimer = null;
+function animateScore(target) {
+  if (countTimer) cancelAnimationFrame(countTimer);
+  const start = performance.now();
+  const from = parseFloat(el.scoreVal.textContent) || 0;
+  const dur = 700;
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / dur);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.scoreVal.textContent = Math.round(from + (target - from) * eased);
+    if (t < 1) countTimer = requestAnimationFrame(tick);
+  };
+  countTimer = requestAnimationFrame(tick);
+}
+
 function renderMatch(m) {
-  el.scoreVal.textContent = m.score;
+  el.gauge.style.setProperty("--ring", ringColor(m.score));
   el.gauge.style.setProperty("--pct", m.score);
+  animateScore(m.score);
   el.scoreSub.textContent = `${m.matched.length}/${m.total} 关键词命中`;
   el.matchCount.textContent = `(${m.matched.length})`;
   el.missCount.textContent = `(${m.missing.length})`;
