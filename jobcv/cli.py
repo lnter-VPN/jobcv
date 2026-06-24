@@ -62,6 +62,16 @@ def cmd_polish(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    try:
+        import uvicorn
+    except ImportError:
+        sys.exit("缺少依赖：pip install 'jobcv[api]'（FastAPI + uvicorn），即可启动网页版。")
+    print(f"jobcv 网页版: http://{args.host}:{args.port}", file=sys.stderr)
+    uvicorn.run("jobcv.api:app", host=args.host, port=args.port, reload=args.reload)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="jobcv", description="AI 简历优化 + ATS 匹配")
     p.add_argument("--version", action="version", version=f"jobcv {__version__}")
@@ -83,6 +93,12 @@ def build_parser() -> argparse.ArgumentParser:
     po.add_argument("--out", default=None, help="输出文件，不填则打印到终端")
     po.add_argument("--top", type=int, default=40)
     po.set_defaults(func=cmd_polish)
+
+    sv = sub.add_parser("serve", help="启动网页版（需要 jobcv[api]）")
+    sv.add_argument("--host", default="127.0.0.1")
+    sv.add_argument("--port", type=int, default=8000)
+    sv.add_argument("--reload", action="store_true", help="开发模式：改代码自动重载")
+    sv.set_defaults(func=cmd_serve)
     return p
 
 

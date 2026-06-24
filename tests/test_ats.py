@@ -12,13 +12,53 @@ def test_english_keywords_and_score():
     assert 0 < r.score < 100
 
 
+def test_synonyms_match():
+    # JD uses full names, resume uses abbreviations — should still match.
+    jd = "Kubernetes, JavaScript and PostgreSQL required."
+    resume = "Shipped apps on k8s, wrote js frontends, stored data in postgres."
+    r = ats.match(resume, jd)
+    assert r.matched == ["kubernetes", "javascript", "postgresql"] or set(
+        r.matched
+    ) == {"kubernetes", "javascript", "postgresql"}
+    assert r.missing == []
+    assert r.score == 100.0
+
+
+def test_cross_language_synonym():
+    jd = "要求熟悉机器学习与微服务架构。"
+    resume = "Built ML pipelines and microservices in production."
+    r = ats.match(resume, jd)
+    assert "machine-learning" in r.matched
+    assert "microservices" in r.matched
+
+
+def test_word_boundary_no_false_positive():
+    # "go" must not match inside "good"; "ai" must not match inside "training".
+    jd = "Go and AI experience."
+    resume = "I did good work and enjoy training models."
+    r = ats.match(resume, jd)
+    assert "good" not in r.matched
+    # neither golang nor ai should be counted as present
+    assert r.score == 0.0
+
+
+def test_frequency_weighting():
+    # python mentioned 3x, rust 1x. Matching only python should score high.
+    jd = "Python python python and rust."
+    resume = "Strong Python developer."
+    r = ats.match(resume, jd)
+    assert "python" in r.matched
+    assert "rust" in r.missing
+    # weighted: 3 of 4 -> 75, not 1 of 2 -> 50
+    assert r.score == 75.0
+
+
 def test_cjk_terms():
     jd = "招聘后端工程师，要求熟悉分布式系统与高并发架构。"
     resume = "负责分布式系统设计，处理高并发请求。"
     r = ats.match(resume, jd)
-    # jieba segments these as real terms; both appear in the resume.
-    assert "分布式系统" in r.matched
-    assert "并发" in r.matched
+    assert "distributed-systems" in r.matched  # 分布式系统 canonicalized
+    assert "high-concurrency" in r.matched  # 高并发 canonicalized
     assert "招聘" in r.missing  # JD-only noise correctly flagged missing
 
 

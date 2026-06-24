@@ -16,7 +16,13 @@ from pydantic import BaseModel, Field
 from . import __version__, ats, llm
 from .cli import POLISH_SYSTEM
 
-WEB_DIR = Path(__file__).resolve().parent.parent / "web"
+_HERE = Path(__file__).resolve().parent
+# Source layout keeps web/ at the repo root; the installed wheel ships it inside
+# the package (see pyproject force-include). Use whichever exists.
+WEB_DIR = next(
+    (d for d in (_HERE / "web", _HERE.parent / "web") if d.is_dir()),
+    _HERE / "web",
+)
 
 app = FastAPI(title="jobcv", version=__version__)
 

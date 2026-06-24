@@ -8,8 +8,13 @@ license = { text = "MIT" }
 dependencies = []  # core is zero-dependency (stdlib only)
 
 [project.optional-dependencies]
-zh = ["jieba"]   # better Chinese keyword segmentation
-dev = ["pytest", "jieba"]
+zh = ["jieba"]                              # better Chinese keyword segmentation
+api = ["fastapi>=0.110", "uvicorn>=0.29"]   # HTTP API + 网页版 (jobcv serve)
+dev = ["pytest", "jieba", "fastapi>=0.110", "uvicorn>=0.29", "build"]
+
+[project.urls]
+Homepage = "https://github.com/lnter-VPN/jobcv"
+Repository = "https://github.com/lnter-VPN/jobcv"
 
 [project.scripts]
 jobcv = "jobcv.cli:main"
@@ -17,3 +22,7 @@ jobcv = "jobcv.cli:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["jobcv"]
+force-include = { "web" = "jobcv/web" }
