@@ -6,105 +6,128 @@
   <title>jobcv · AI 简历优化 + ATS 匹配</title>
   <meta name="description" content="一键测算简历与岗位 JD 的 ATS 匹配度，并用 AI 优化简历，提升过筛率。" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div class="aurora" aria-hidden="true"></div>
-
   <header class="topbar">
-    <div class="brand">
-      <span class="logo">📄</span>
-      <div class="brand-text">
-        <span class="name">jobcv</span>
-        <span class="tag">AI 简历优化 · ATS 关键词匹配</span>
-      </div>
-    </div>
-    <div class="top-actions">
-      <span class="status" id="healthDot" title="后端状态"><i class="status-dot"></i><span class="status-text">连接中</span></span>
-      <a class="gh-link" href="https://github.com/lnter-VPN/jobcv" target="_blank" rel="noopener">GitHub</a>
+    <div class="wrap topbar-inner">
+      <a class="brand" href="/">
+        <span class="logo">jc</span>
+        <span class="brand-name">jobcv</span>
+      </a>
+      <nav class="topnav">
+        <span class="status" id="healthDot"><i class="status-dot"></i><span class="status-text">后端在线</span></span>
+        <a class="btn-link" href="https://github.com/lnter-VPN/jobcv" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub
+        </a>
+      </nav>
     </div>
   </header>
 
-  <section class="hero">
-    <h1>让简历精准命中岗位 <span class="grad">关键词</span></h1>
-    <p>粘贴 JD 和你的简历，秒出 ATS 匹配分与缺失关键词；需要时交给 AI 把简历改得更对味。</p>
-  </section>
-
-  <main class="layout">
-    <!-- 左：输入 -->
-    <section class="pane input-pane">
-      <div class="pane-title"><span class="step">1</span> 输入</div>
-
-      <label class="field">
-        <span class="label">目标岗位 JD</span>
-        <textarea id="jd" placeholder="粘贴招聘岗位的职位描述（JD）…"></textarea>
-      </label>
-      <label class="field">
-        <span class="label">你的简历</span>
-        <textarea id="resume" placeholder="粘贴你当前的简历正文…"></textarea>
-      </label>
-
-      <details class="backend-cfg">
-        <summary><span class="gear">⚙</span> 模型后端设置（AI 优化才需要）</summary>
-        <div class="cfg-grid">
-          <label>后端
-            <select id="backend">
-              <option value="deepseek">DeepSeek（默认，便宜）</option>
-              <option value="ollama">Ollama（本地，数据不出本机）</option>
-              <option value="custom">自定义 OpenAI 兼容地址</option>
-            </select>
-          </label>
-          <label>模型 <input id="model" placeholder="留空用后端默认" /></label>
-          <label class="custom-only">Base URL <input id="baseUrl" placeholder="http://localhost:11434/v1" /></label>
-          <label class="key-row">API Key <input id="apiKey" type="password" placeholder="仅保存在你浏览器本地，不经服务器" /></label>
-        </div>
-        <p class="cfg-note">🔒 Key 只存在你本地浏览器，不会上传到我们的服务器。</p>
-      </details>
-
-      <div class="actions">
-        <button id="scoreBtn" class="btn ghost">算 ATS 分 · 免费</button>
-        <button id="polishBtn" class="btn primary">AI 优化简历 <span class="arrow">→</span></button>
-      </div>
-      <p class="hint" id="hint"></p>
+  <main>
+    <section class="hero wrap">
+      <span class="eyebrow">开源 · 免费算分 · 自带 Key 用 AI</span>
+      <h1>让简历精准命中岗位<br /><span class="grad">关键词</span></h1>
+      <p class="lead">粘贴 JD 和你的简历，秒出 ATS 匹配分与缺失关键词。需要时，交给 AI 把简历改得更对味，提升机器初筛通过率。</p>
     </section>
 
-    <!-- 右：结果 -->
-    <section class="pane result-pane">
-      <div class="pane-title"><span class="step">2</span> 结果</div>
-
-      <div class="score-card">
-        <div class="gauge" id="gauge">
-          <div class="gauge-inner">
-            <span class="gauge-val" id="scoreVal">—</span>
-            <span class="gauge-max">/ 100</span>
+    <section class="board wrap">
+      <!-- 左：输入 -->
+      <div class="card input-card">
+        <div class="card-head">
+          <span class="num">1</span>
+          <div>
+            <h2>输入</h2>
+            <p>粘贴目标岗位 JD 与你的简历正文</p>
           </div>
         </div>
-        <div class="score-meta">
-          <div class="score-title">ATS 匹配分</div>
-          <div class="score-sub" id="scoreSub">输入 JD 和简历后点击左侧按钮</div>
-          <div class="delta" id="delta"></div>
+
+        <label class="field">
+          <span class="field-label">目标岗位 JD</span>
+          <textarea id="jd" placeholder="粘贴招聘岗位的职位描述（JD）…"></textarea>
+        </label>
+        <label class="field">
+          <span class="field-label">你的简历</span>
+          <textarea id="resume" placeholder="粘贴你当前的简历正文…"></textarea>
+        </label>
+
+        <details class="backend-cfg">
+          <summary>
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94a7.49 7.49 0 000-1.88l2.03-1.58a.5.5 0 00.12-.64l-1.92-3.32a.5.5 0 00-.61-.22l-2.39.96a7.3 7.3 0 00-1.62-.94l-.36-2.54a.5.5 0 00-.5-.42h-3.84a.5.5 0 00-.5.42l-.36 2.54c-.58.24-1.12.55-1.62.94l-2.39-.96a.5.5 0 00-.61.22L2.69 8.84a.5.5 0 00.12.64l2.03 1.58a7.49 7.49 0 000 1.88l-2.03 1.58a.5.5 0 00-.12.64l1.92 3.32c.14.24.42.33.67.22l2.39-.96c.5.39 1.04.7 1.62.94l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.58-.24 1.12-.55 1.62-.94l2.39.96c.25.11.53.02.67-.22l1.92-3.32a.5.5 0 00-.12-.64l-2.03-1.58zM12 15.5A3.5 3.5 0 1112 8.5a3.5 3.5 0 010 7z"/></svg>
+            模型后端设置（仅 AI 优化需要）
+          </summary>
+          <div class="cfg-grid">
+            <label class="cfg-field">后端
+              <select id="backend">
+                <option value="deepseek">DeepSeek（默认，便宜）</option>
+                <option value="ollama">Ollama（本地，数据不出本机）</option>
+                <option value="custom">自定义 OpenAI 兼容地址</option>
+              </select>
+            </label>
+            <label class="cfg-field">模型 <input id="model" placeholder="留空用后端默认" /></label>
+            <label class="cfg-field custom-only">Base URL <input id="baseUrl" placeholder="http://localhost:11434/v1" /></label>
+            <label class="cfg-field key-row">API Key <input id="apiKey" type="password" placeholder="仅保存在你浏览器本地" /></label>
+          </div>
+          <p class="cfg-note"><svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm3 8H9V6a3 3 0 016 0v3z"/></svg> API Key 只存在你本地浏览器，不会上传到服务器。</p>
+        </details>
+
+        <div class="actions">
+          <button id="scoreBtn" class="btn btn-ghost">算 ATS 分 · 免费</button>
+          <button id="polishBtn" class="btn btn-primary">AI 优化简历<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg></button>
         </div>
+        <p class="hint" id="hint"></p>
       </div>
 
-      <div class="kw-block">
-        <div class="kw-head"><span class="dot ok"></span>命中关键词 <span id="matchCount" class="count"></span></div>
-        <div class="chips" id="matched"><span class="chips-empty">暂无</span></div>
-      </div>
-      <div class="kw-block">
-        <div class="kw-head"><span class="dot miss"></span>缺失关键词 <span id="missCount" class="count"></span></div>
-        <div class="chips" id="missing"><span class="chips-empty">暂无</span></div>
-      </div>
+      <!-- 右：结果 -->
+      <div class="card result-card">
+        <div class="card-head">
+          <span class="num">2</span>
+          <div>
+            <h2>结果</h2>
+            <p>ATS 匹配分与关键词命中情况</p>
+          </div>
+        </div>
 
-      <div class="polished" id="polishedBlock" hidden>
-        <div class="kw-head">✨ 优化后简历 <button id="copyBtn" class="copy">复制</button></div>
-        <pre id="polishedText"></pre>
+        <div class="score-card">
+          <div class="ring" id="gauge">
+            <svg viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="ring-track" cx="60" cy="60" r="52" />
+              <circle class="ring-bar" id="ringBar" cx="60" cy="60" r="52" />
+            </svg>
+            <div class="ring-center">
+              <span class="ring-val" id="scoreVal">—</span>
+              <span class="ring-max">/ 100</span>
+            </div>
+          </div>
+          <div class="score-meta">
+            <div class="score-title">ATS 匹配分</div>
+            <div class="score-sub" id="scoreSub">填入左侧内容后点击「算 ATS 分」</div>
+            <div class="delta" id="delta"></div>
+          </div>
+        </div>
+
+        <div class="kw-block">
+          <div class="kw-head"><span class="dot ok"></span>命中关键词<span id="matchCount" class="count"></span></div>
+          <div class="chips" id="matched"><span class="chips-empty">等待算分…</span></div>
+        </div>
+        <div class="kw-block">
+          <div class="kw-head"><span class="dot miss"></span>缺失关键词<span id="missCount" class="count"></span></div>
+          <div class="chips" id="missing"><span class="chips-empty">等待算分…</span></div>
+        </div>
+
+        <div class="polished" id="polishedBlock" hidden>
+          <div class="kw-head">优化后简历<button id="copyBtn" class="copy">复制</button></div>
+          <pre id="polishedText"></pre>
+        </div>
       </div>
     </section>
   </main>
 
-  <footer class="foot">
+  <footer class="foot wrap">
     <span>jobcv · 开源于 <a href="https://github.com/lnter-VPN/jobcv" target="_blank" rel="noopener">GitHub</a></span>
-    <span class="foot-sep">·</span>
     <span>算分免费即用，AI 优化需自带 API Key（不花本站的钱）</span>
   </footer>
 
