@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Common English stopwords + filler words that should never count as keywords.
 _STOPWORDS = {
@@ -199,10 +199,21 @@ class MatchResult:
     score: float  # 0..100, frequency-weighted
     matched: list[str]
     missing: list[str]
+    # canonical keyword -> JD weight (raw frequency), so callers can tell which
+    # gaps actually matter. Defaulted for backwards-compatible construction.
+    weights: dict[str, int] = field(default_factory=dict)
 
     @property
     def total(self) -> int:
         return len(self.matched) + len(self.missing)
+
+    def top_missing(self, n: int = 3) -> list[str]:
+        """The ``n`` missing keywords the JD emphasises most (by frequency).
+
+        These are the highest-leverage gaps to close: adding a keyword the JD
+        repeats lifts the score more than one it mentions once.
+        """
+        return sorted(self.missing, key=lambda k: -self.weights.get(k, 1))[:n]
 
 
 @dataclass
@@ -248,4 +259,4 @@ def match(resume_text: str, jd_text: str, top: int = 40) -> MatchResult:
             missing.append(kw)
 
     score = round(100 * got_weight / total_weight, 1) if total_weight else 0.0
-    return MatchResult(score=score, matched=matched, missing=missing)
+    return MatchResult(score=score, matched=matched, missing=missing, weights=dict(weights))

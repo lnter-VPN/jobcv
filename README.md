@@ -26,6 +26,9 @@ pip install 'jobcv[api]'     # +FastAPI/uvicorn，启用网页版
 # 只算 ATS 匹配分：不调模型、不花钱、不联网
 jobcv score --resume examples/resume.txt --jd examples/jd.txt
 
+# 加 --json，score / report / match 输出机器可读结果，方便脚本与 CI 集成
+jobcv score --resume resume.txt --jd jd.txt --json
+
 # 按 JD 优化简历（默认 DeepSeek）
 export DEEPSEEK_API_KEY=sk-xxx
 jobcv polish --resume resume.txt --jd jd.txt --out resume.opt.txt

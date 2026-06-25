@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import json
 import sys
 from pathlib import Path
 
@@ -37,20 +39,38 @@ def _read(path: str) -> str:
         sys.exit(str(e))
 
 
+def _emit_json(payload: object) -> None:
+    """Print a JSON document to stdout (machine-readable mode)."""
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
 def cmd_score(args: argparse.Namespace) -> int:
     resume = _read(args.resume)
     jd = _read(args.jd)
     r = ats.match(resume, jd, top=args.top)
+    if args.json:
+        _emit_json({
+            "score": r.score,
+            "matched": r.matched,
+            "missing": r.missing,
+            "priority": r.top_missing(3),
+            "total": r.total,
+        })
+        return 0
     print(f"ATS 匹配分: {r.score}/100  ({len(r.matched)}/{r.total} 关键词命中)\n")
     print("✅ 命中:", "  ".join(r.matched) or "(无)")
     print("\n❌ 缺失:", "  ".join(r.missing) or "(无)")
     if r.missing:
-        print("\n建议: 把上面缺失的关键词（属实的）自然写进简历，可显著提升过筛率。")
+        print(f"\n建议: 优先补这几个 JD 最看重的缺失词（属实的）→ {'  '.join(r.top_missing(3))}")
+        print("把它们自然写进简历，可显著提升过筛率。")
     return 0
 
 
 def cmd_report(args: argparse.Namespace) -> int:
     rep = report.analyze(_read(args.resume))
+    if args.json:
+        _emit_json(dataclasses.asdict(rep))
+        return 0
     print(f"简历体检分: {rep.score}/100\n")
     print(f"  字数        : {rep.word_count}")
     print(f"  经历条目    : {rep.bullet_count}")
@@ -68,12 +88,26 @@ def cmd_match(args: argparse.Namespace) -> int:
     resume = _read(args.resume)
     jds = {Path(p).stem: _read(p) for p in args.jds}
     ranked = ats.rank(resume, jds, top=args.top)
+    if args.json:
+        _emit_json([
+            {
+                "label": rj.label,
+                "score": rj.result.score,
+                "matched": rj.result.matched,
+                "missing": rj.result.missing,
+                "priority": rj.result.top_missing(3),
+                "total": rj.result.total,
+            }
+            for rj in ranked
+        ])
+        return 0
     print(f"一份简历 × {len(ranked)} 个岗位，按匹配度排序:\n")
     for i, rj in enumerate(ranked, 1):
         r = rj.result
         print(f"{i}. {rj.label:<24} {r.score:>5}/100  ({len(r.matched)}/{r.total} 命中)")
-    print(f"\n最匹配: 「{ranked[0].label}」，缺失关键词:",
-          "  ".join(ranked[0].result.missing) or "(无)")
+    best = ranked[0].result
+    print(f"\n最匹配: 「{ranked[0].label}」，优先补的缺失词:",
+          "  ".join(best.top_missing(5)) or "(无)")
     return 0
 
 
@@ -152,16 +186,19 @@ def build_parser() -> argparse.ArgumentParser:
     sc.add_argument("--resume", required=True)
     sc.add_argument("--jd", required=True)
     sc.add_argument("--top", type=int, default=40)
+    sc.add_argument("--json", action="store_true", help="输出 JSON，便于脚本/CI 集成")
     sc.set_defaults(func=cmd_score)
 
     rp = sub.add_parser("report", help="简历体检：量化率/强动词/板块/联系方式（纯本地，免 key）")
     rp.add_argument("--resume", required=True)
+    rp.add_argument("--json", action="store_true", help="输出 JSON，便于脚本/CI 集成")
     rp.set_defaults(func=cmd_report)
 
     mt = sub.add_parser("match", help="一份简历对多个 JD，排出最匹配岗位（纯本地）")
     mt.add_argument("--resume", required=True)
     mt.add_argument("--jds", required=True, nargs="+", help="多个 JD 文件路径")
     mt.add_argument("--top", type=int, default=40)
+    mt.add_argument("--json", action="store_true", help="输出 JSON，便于脚本/CI 集成")
     mt.set_defaults(func=cmd_match)
 
     cv = sub.add_parser("cover", help="生成求职信（调用 LLM）")
