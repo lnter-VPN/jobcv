@@ -73,6 +73,19 @@ def test_stopwords_excluded():
     assert kws == []
 
 
+def test_top_missing_prioritises_by_jd_weight():
+    # JD stresses python (4x) over rust (1x); resume has neither relevant skill.
+    jd = "Python python python python and rust."
+    resume = "Java developer."
+    r = ats.match(resume, jd)
+    assert "python" in r.missing and "rust" in r.missing
+    # The most-emphasised gap comes first.
+    assert r.top_missing(1) == ["python"]
+    assert r.top_missing(2) == ["python", "rust"]
+    # weights are exposed for callers that want the raw frequencies.
+    assert r.weights["python"] == 4
+
+
 def test_perfect_and_zero():
     assert ats.match("python docker", "python docker").score == 100.0
     assert ats.match("nothing here", "rust golang").score == 0.0

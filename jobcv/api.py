@@ -39,6 +39,7 @@ class MatchOut(BaseModel):
     score: float
     matched: list[str]
     missing: list[str]
+    priority: list[str]  # missing keywords the JD weights most, fix these first
     total: int
 
 
@@ -118,7 +119,8 @@ class ExtractOut(BaseModel):
 # ---- helpers ---------------------------------------------------------------
 
 def _match_out(r: ats.MatchResult) -> MatchOut:
-    return MatchOut(score=r.score, matched=r.matched, missing=r.missing, total=r.total)
+    return MatchOut(score=r.score, matched=r.matched, missing=r.missing,
+                    priority=r.top_missing(3), total=r.total)
 
 
 # ---- API -------------------------------------------------------------------
