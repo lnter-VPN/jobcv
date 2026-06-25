@@ -1,0 +1,10 @@
+招聘：高级后端工程师
+岗位职责：
+- 负责高并发分布式系统设计与开发
+- 使用 Go 或 Python 构建微服务
+- 优化 MySQL、Redis 性能，处理消息队列（Kafka/RabbitMQ）
+- 用 Kubernetes 做容器编排
+任职要求：
+- 3年以上后端经验，熟悉分布式系统
+- 精通高并发、缓存、消息队列
+- 有 Kubernetes、Docker 经验优先

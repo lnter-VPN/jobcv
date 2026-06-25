@@ -49,8 +49,13 @@ def test_frequency_weighting():
     r = ats.match(resume, jd)
     assert "python" in r.matched
     assert "rust" in r.missing
-    # weighted: 3 of 4 -> 75, not 1 of 2 -> 50
-    assert r.score == 75.0
+    # Sublinear TF (1 + log2 tf): python weighs 1+log2(3)=2.585, rust 1.0.
+    # So python's 3 mentions still beat a flat 1-of-2 (50), but a repeated
+    # word can't run away with the whole score the way linear weighting would
+    # (which gave 3/4 = 75). 2.585 / 3.585 = 72.1%.
+    assert r.score == 72.1
+    # Strictly between naive-flat (50) and linear-TF (75).
+    assert 50.0 < r.score < 75.0
 
 
 def test_cjk_terms():

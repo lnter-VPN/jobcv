@@ -15,6 +15,7 @@ Handles English tokens and CJK (Chinese) terms.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass
 
@@ -38,11 +39,35 @@ _EN_TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9+#./\-]*[A-Za-z0-9+#]|[A-Za-z]{2,}")
 # Runs of CJK characters
 _CJK_RUN = re.compile(r"[一-鿿]{2,}")
 
-# Chinese single-char particles/verbs that are noise even after segmentation.
+# Chinese boilerplate that is noise even after segmentation. These are the
+# HR / job-description filler words that appear in nearly every posting and so
+# carry no signal about which role a resume actually fits — leaving them in
+# lets generic verbs ("开发"/"优化") dominate the score over concrete skills.
 _CJK_STOP = {
-    "的", "了", "和", "与", "及", "或", "在", "是", "有", "要求", "负责", "熟悉",
-    "熟练", "掌握", "具备", "拥有", "以及", "等", "对", "并", "能", "需",
-    "招聘", "岗位", "职责", "任职", "优先", "加分", "我们", "公司", "团队",
+    # particles / conjunctions
+    "的", "了", "和", "与", "及", "或", "在", "是", "有", "对", "并", "能", "需",
+    "以及", "等", "等等", "其他", "各种", "多种", "不限", "以上", "以下", "至少",
+    "包括", "如", "且", "为", "之", "于", "而", "也", "等方面",
+    # JD structural boilerplate
+    "招聘", "岗位", "职责", "岗位职责", "任职", "任职要求", "要求", "优先", "加分",
+    "我们", "公司", "团队", "业务", "项目", "工作", "经验", "能力", "相关", "工程师",
+    "人员", "职位", "薪资", "福利", "地点", "全职", "实习",
+    # skill-statement verbs (every JD has these → no discrimination)
+    "负责", "参与", "配合", "协作", "协助", "支持", "推动", "完成", "实现", "进行",
+    "处理", "提供", "保障", "维护", "搭建", "使用", "开发", "设计", "优化", "提升",
+    "改进", "制定", "落地", "输出", "编写", "应用", "运用", "建设", "管理", "执行",
+    # requirement verbs / adjectives
+    "熟悉", "熟练", "掌握", "具备", "拥有", "了解", "具有", "精通", "良好", "优秀",
+    "较强", "较好", "独立", "主动", "积极", "认真", "扎实", "丰富", "强烈",
+    # generic soft nouns
+    "工具", "平台", "环境", "方案", "流程", "标准", "质量", "效率", "稳定", "安全",
+    "用户", "技术", "功能", "模块", "组件", "界面", "文档", "责任", "沟通", "学习",
+    "思维", "意识", "精神", "方向", "目标", "结果", "价值", "经历", "背景", "专业",
+    "本科", "学历", "工程化", "兼容", "浏览器", "构建",
+    # over-generic nouns that jieba splits out of real compounds and that then
+    # substring-match unrelated words (e.g. 数据 ⊂ 数据库) — keep the compounds
+    # (数据库 / 数据仓库) which survive as their own tokens, drop the bare noun.
+    "数据", "任务", "支撑", "决策", "生态", "系统", "服务", "接口", "代码",
 }
 
 # Synonym / skill groups. The first item in each group is the canonical form
@@ -209,13 +234,16 @@ def match(resume_text: str, jd_text: str, top: int = 40) -> MatchResult:
     resume_norm = _normalize(resume_text)
 
     matched, missing = [], []
-    got_weight = 0
-    total_weight = 0
+    got_weight = 0.0
+    total_weight = 0.0
     for kw, w in weights.items():
-        total_weight += w
+        # Sublinear TF: a word the JD repeats counts for a bit more, but a
+        # repeated title word ("前端"×4) can't dominate the whole score.
+        eff = 1.0 + math.log2(w)
+        total_weight += eff
         if _present(kw, resume_norm, resume_text):
             matched.append(kw)
-            got_weight += w
+            got_weight += eff
         else:
             missing.append(kw)
 

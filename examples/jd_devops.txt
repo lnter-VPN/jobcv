@@ -1,0 +1,9 @@
+招聘：DevOps / SRE 工程师
+岗位职责：
+- 维护 Kubernetes 容器平台与 CI/CD 流水线
+- 使用 Docker、Jenkins、GitLab CI 做自动化部署
+- 监控告警（Prometheus/Grafana），保障系统稳定性
+- 编写 Python / Shell 自动化运维脚本
+任职要求：
+- 熟悉 Linux、网络、云平台
+- 掌握 Kubernetes、Docker、Redis

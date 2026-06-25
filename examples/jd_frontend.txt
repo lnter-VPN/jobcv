@@ -1,0 +1,8 @@
+招聘：前端工程师
+岗位职责：
+- 使用 React / Vue 开发 Web 前端界面
+- 熟悉 TypeScript、HTML、CSS 与组件化
+- 负责前端工程化、性能优化、浏览器兼容
+任职要求：
+- 3年以上前端经验，精通 JavaScript
+- 熟悉 Webpack、Vite 构建工具
